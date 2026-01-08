@@ -2,8 +2,9 @@ name: Daily Question Collection
 
 on:
   schedule:
+    # Запуск каждый день в 9 утра по UTC
     - cron: '0 9 * * *'
-  workflow_dispatch:  
+  workflow_dispatch:  # Ручной запуск
     inputs:
       technologies:
         description: 'Технологии для сбора (через запятую)'
@@ -62,7 +63,8 @@ jobs:
           echo "| Технология | Найдено | Добавлено |" >> $GITHUB_STEP_SUMMARY
           echo "|------------|---------|-----------|" >> $GITHUB_STEP_SUMMARY
           
-          python -c "
+          # Используем Python для парсинга JSON
+          python3 -c "
           import json
           with open('results.json', 'r') as f:
               data = json.load(f)

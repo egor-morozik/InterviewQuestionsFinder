@@ -3,7 +3,7 @@ from typing import List
 
 class Config:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-    GROQ_MODEL = "mixtral-8x7b-32768"  
+    GROQ_MODEL = "llama-3.3-70b-versatile"  
     
     QDRANT_URL = os.getenv("QDRANT_URL")
     QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")

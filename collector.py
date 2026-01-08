@@ -217,9 +217,27 @@ class SimpleInterviewCollector:
         for tech, res in total_results.items():
             if "added" in res:
                 print(f"  {tech}: {res['added']}/{res['total']} вопросов")
+
+        self.generate_github_summary(total_results)
         
         return total_results
     
+    def generate_github_summary(self, results: Dict):
+        """Генерирует summary для GitHub Actions"""
+        summary = ["## 📊 Результаты сбора", ""]
+        
+        for tech, res in results.items():
+            if "added" in res:
+                summary.append(f"### {tech}")
+                summary.append(f"- Найдено: {res['total']}")
+                summary.append(f"- Добавлено: {res['added']}")
+                summary.append("")
+        
+        with open("github_summary.md", "w", encoding="utf-8") as f:
+            f.write("\n".join(summary))
+        
+        print("📋 Summary сохранен в github_summary.md")
+
     def save_report(self, results: Dict):
         """Сохраняет отчет в читаемом формате"""
         report = []
