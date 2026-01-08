@@ -1,0 +1,92 @@
+name: Daily Question Collection
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:  
+    inputs:
+      technologies:
+        description: 'Технологии для сбора (через запятую)'
+        required: false
+        default: 'Python,Django,SQL,Docker,Redis'
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install requests
+        
+    - name: Run collector
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        QDRANT_URL: ${{ secrets.QDRANT_URL }}
+        QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      run: |
+        python collector.py
+        
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
+        name: collection-report
+        path: |
+          collection_report.md
+          results.json
+        
+    - name: Create summary
+      run: |
+        echo "# 🚀 Результаты автоматического сбора" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Дата: $(date '+%Y-%m-%d %H:%M')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "results.json" ]; then
+          echo "## 📊 Статистика по технологиям" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Парсим JSON и создаем таблицу
+          echo "| Технология | Найдено | Добавлено |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|---------|-----------|" >> $GITHUB_STEP_SUMMARY
+          
+          python -c "
+          import json
+          with open('results.json', 'r') as f:
+              data = json.load(f)
+          for tech, stats in data.items():
+              if 'total' in stats:
+                  print(f'| {tech} | {stats[\"total\"]} | {stats[\"added\"]} |')
+          " >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 Полный отчет: [collection_report.md](artifact/collection-report/collection_report.md)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Файл с результатами не найден" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        git add collection_report.md results.json 2>/dev/null || true
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "📚 Auto-collect: $(date '+%Y-%m-%d')"
+          git push
+        fi
